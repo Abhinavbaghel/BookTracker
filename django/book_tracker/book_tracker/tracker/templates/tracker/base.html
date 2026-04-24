@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}BookTracker{% endblock %}</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"/>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <style>
+    /* ── Global ───────────────────────────────── */
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Navbar ───────────────────────────────── */
+    .navbar-custom {
+      background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+      box-shadow: 0 2px 15px rgba(67,97,238,0.3);
+      padding: 12px 0;
+    }
+    .navbar-brand {
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: #fff !important;
+      letter-spacing: -0.5px;
+    }
+    .navbar-brand i { margin-right: 8px; }
+    .nav-link-custom {
+      color: rgba(255,255,255,0.85) !important;
+      font-weight: 500;
+      transition: color .2s;
+    }
+    .nav-link-custom:hover { color: #fff !important; }
+    .btn-nav-logout {
+      background: rgba(255,255,255,0.15);
+      color: #fff !important;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      padding: 6px 16px;
+      font-weight: 500;
+      transition: background .2s;
+    }
+    .btn-nav-logout:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── Main content ─────────────────────────── */
+    .main-content { flex: 1; padding: 30px 0; }
+
+    /* ── Cards ────────────────────────────────── */
+    .card-custom {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.07);
+      transition: transform .2s, box-shadow .2s;
+      background: #fff;
+    }
+    .card-custom:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+
+    /* ── Stat Cards ───────────────────────────── */
+    .stat-card {
+      border-radius: 16px;
+      padding: 24px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+    }
+    .stat-card .stat-icon {
+      font-size: 2.5rem;
+      opacity: 0.9;
+    }
+    .stat-card .stat-number {
+      font-size: 2.2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-card .stat-label {
+      font-size: 0.85rem;
+      opacity: 0.85;
+      font-weight: 500;
+    }
+    .bg-gradient-blue   { background: linear-gradient(135deg, #4361ee, #3a0ca3); }
+    .bg-gradient-green  { background: linear-gradient(135deg, #2ec4b6, #1a936f); }
+    .bg-gradient-orange { background: linear-gradient(135deg, #f77f00, #d62828); }
+    .bg-gradient-purple { background: linear-gradient(135deg, #7209b7, #560bad); }
+
+    /* ── Book Card ────────────────────────────── */
+    .book-card {
+      border-radius: 16px;
+      border: none;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      transition: transform .2s, box-shadow .2s;
+      overflow: hidden;
+    }
+    .book-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    .book-cover {
+      height: 8px;
+      width: 100%;
+    }
+    .book-card .card-body { padding: 20px; }
+    .book-title {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    .book-author {
+      font-size: 0.82rem;
+      color: #6c757d;
+      margin-bottom: 12px;
+    }
+    .progress-custom {
+      height: 8px;
+      border-radius: 10px;
+      background: #e9ecef;
+      overflow: hidden;
+    }
+    .progress-bar-custom {
+      border-radius: 10px;
+      background: linear-gradient(90deg, #4361ee, #7209b7);
+      transition: width 0.8s ease;
+    }
+    .pages-info {
+      font-size: 0.78rem;
+      color: #6c757d;
+      margin-top: 6px;
+    }
+    .progress-pct {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #4361ee;
+    }
+
+    /* ── Review Card ──────────────────────────── */
+    .review-card {
+      border-left: 4px solid #4361ee;
+      border-radius: 0 12px 12px 0;
+      background: #fff;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .review-book-title {
+      font-weight: 600;
+      color: #4361ee;
+      font-size: 0.9rem;
+    }
+    .review-text {
+      color: #495057;
+      font-size: 0.88rem;
+      margin: 6px 0;
+      line-height: 1.5;
+    }
+    .review-meta {
+      font-size: 0.78rem;
+      color: #adb5bd;
+    }
+    .stars { color: #f9c74f; font-size: 0.85rem; }
+
+    /* ── Section Heading ──────────────────────── */
+    .section-title {
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: #1a1a2e;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title i { color: #4361ee; }
+
+    /* ── Goal Progress ────────────────────────── */
+    .goal-card {
+      background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+      border-radius: 16px;
+      padding: 24px;
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(67,97,238,0.35);
+    }
+    .goal-progress-bar {
+      height: 12px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.2);
+      overflow: hidden;
+    }
+    .goal-progress-fill {
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #4cc9f0, #f72585);
+      transition: width 1s ease;
+    }
+
+    /* ── Footer ───────────────────────────────── */
+    .footer-custom {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      color: rgba(255,255,255,0.7);
+      padding: 24px 0;
+      font-size: 0.875rem;
+    }
+    .footer-custom a { color: #4361ee; text-decoration: none; }
+
+    /* ── Buttons ──────────────────────────────── */
+    .btn-primary-custom {
+      background: linear-gradient(135deg, #4361ee, #3a0ca3);
+      border: none;
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 24px;
+      font-weight: 600;
+      transition: opacity .2s, transform .2s;
+    }
+    .btn-primary-custom:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      color: #fff;
+    }
+    .btn-danger-sm {
+      background: #fff0f0;
+      color: #d62828;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      transition: background .2s;
+    }
+    .btn-danger-sm:hover { background: #ffe0e0; }
+
+    /* ── Alerts ───────────────────────────────── */
+    .alert { border-radius: 12px; font-size: 0.9rem; }
+
+    /* ── Badges ───────────────────────────────── */
+    .badge-reading   { background: #e3f0ff; color: #4361ee; }
+    .badge-completed { background: #e3fff4; color: #1a936f; }
+    .badge-wishlist  { background: #fef3e2; color: #f77f00; }
+    .badge-custom {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── Empty state ──────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #adb5bd;
+    }
+    .empty-state i { font-size: 3rem; margin-bottom: 12px; display: block; }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+  <!-- ── Navbar ─────────────────────────────────── -->
+  {% if user.is_authenticated %}
+  <nav class="navbar navbar-expand-lg navbar-custom">
+    <div class="container">
+      <a class="navbar-brand" href="{% url 'dashboard' %}">
+        <i class="bi bi-book-half"></i>BookTracker
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#navbarNav" style="border-color:rgba(255,255,255,.4)">
+        <span class="navbar-toggler-icon" style="filter:invert(1)"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto align-items-center gap-2">
+          <li class="nav-item">
+            <a class="nav-link-custom nav-link" href="{% url 'dashboard' %}">
+              <i class="bi bi-house"></i> Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link-custom nav-link" href="{% url 'add_book' %}">
+              <i class="bi bi-plus-circle"></i> Add Book
+            </a>
+          </li>
+          <li class="nav-item ms-2">
+            <span class="nav-link-custom nav-link">
+              <i class="bi bi-person-circle"></i> {{ user.username }}
+            </span>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-nav-logout" href="{% url 'logout' %}">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  {% endif %}
+
+  <!-- ── Flash Messages ─────────────────────────── -->
+  {% if messages %}
+  <div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── Page Content ───────────────────────────── -->
+  <main class="main-content">
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────── -->
+  <footer class="footer-custom">
+    <div class="container text-center">
+      <div class="mb-1">
+        <i class="bi bi-book-half" style="color:#4361ee"></i>
+        <strong style="color:#fff">BookTracker</strong>
+      </div>
+      <div>© {% now "Y" %} BookTracker — Track your reading journey 📚</div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

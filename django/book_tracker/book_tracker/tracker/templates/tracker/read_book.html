@@ -1,0 +1,344 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Read {{ book.title }} — BookTracker{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'dashboard' %}" class="text-muted text-decoration-none" style="font-size:.88rem">
+    <i class="bi bi-arrow-left"></i> Back to Dashboard
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card-custom p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+        <div>
+          <span class="badge rounded-pill" style="background:#eaf4ff;color:#0d6efd">PDF Reader</span>
+          <h2 class="mt-2 mb-1" style="font-weight:700;color:#1a1a2e">{{ book.title }}</h2>
+          <p class="text-muted mb-0">by {{ book.author }}</p>
+        </div>
+        <div class="text-end">
+          <div style="font-size:1.8rem;font-weight:800;color:#4361ee">{{ book.progress_percentage }}%</div>
+          <div class="text-muted small">Current progress</div>
+        </div>
+      </div>
+
+      <div class="progress-custom mb-2" style="height:12px">
+        <div class="progress-bar-custom" style="width:{{ book.progress_percentage }}%"></div>
+      </div>
+      <div class="pages-info mb-3" style="font-size:.9rem">
+        <i class="bi bi-file-text"></i> {{ book.pages_read }} / {{ book.total_pages }} pages read
+        &nbsp; • &nbsp;
+        <i class="bi bi-stopwatch"></i> {{ book.reading_minutes }} total minutes logged
+      </div>
+
+      <div style="border:1px solid #e8edf5;border-radius:16px;overflow:hidden;background:#f8fafc;display:flex;flex-direction:column;height:800px">
+        <!-- PDF Toolbar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:#f0f4f9;border-bottom:1px solid #e8edf5;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="prevPage" class="btn btn-sm" style="background:#fff;border:1px solid #dbe4ff;color:#4361ee;padding:6px 10px;border-radius:6px;cursor:pointer">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <input type="number" id="pageNum" min="1" style="width:60px;border:1px solid #dbe4ff;border-radius:6px;padding:6px;text-align:center">
+            <span id="pageCount" style="color:#666;font-size:.9rem">of 0</span>
+            <button id="nextPage" class="btn btn-sm" style="background:#fff;border:1px solid #dbe4ff;color:#4361ee;padding:6px 10px;border-radius:6px;cursor:pointer">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="zoomOut" class="btn btn-sm" style="background:#fff;border:1px solid #dbe4ff;color:#4361ee;padding:6px 10px;border-radius:6px;cursor:pointer">
+              <i class="bi bi-zoom-out"></i>
+            </button>
+            <input type="range" id="zoomLevel" min="50" max="200" value="100" style="width:100px">
+            <span id="zoomText" style="width:40px;text-align:center;color:#666">100%</span>
+            <button id="zoomIn" class="btn btn-sm" style="background:#fff;border:1px solid #dbe4ff;color:#4361ee;padding:6px 10px;border-radius:6px;cursor:pointer">
+              <i class="bi bi-zoom-in"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- PDF Canvas Container -->
+        <div style="flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start;background:#fff;padding:20px">
+          <canvas id="pdfCanvas" style="max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.1)"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card-custom p-4 mb-4">
+      <h5 class="fw-bold mb-3" style="color:#1a1a2e"><i class="bi bi-pencil-square" style="color:#4361ee"></i> Save Reading Progress</h5>
+      <form method="POST" id="readerProgressForm">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label fw-bold small">Pages Read</label>
+          <input type="number" name="pages_read" id="pagesReadInput" value="{{ book.pages_read }}" min="0" max="{{ book.total_pages }}" class="form-control">
+          <div class="text-muted mt-1" style="font-size:.82rem">Progress automatically percentage me show hoga.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold small">Study Minutes This Session</label>
+          <input type="number" name="session_minutes" id="sessionMinutesInput" value="0" min="0" class="form-control">
+        </div>
+        <div class="p-3 mb-3" style="background:#f8faff;border:1px solid #e6eeff;border-radius:14px">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small text-muted">Live Progress</span>
+            <strong id="liveProgressText" style="color:#4361ee">{{ book.progress_percentage }}%</strong>
+          </div>
+          <div class="progress-custom" style="height:10px">
+            <div id="liveProgressBar" class="progress-bar-custom" style="width:{{ book.progress_percentage }}%"></div>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary-custom w-100">
+          <i class="bi bi-save"></i> Save Progress
+        </button>
+      </form>
+    </div>
+
+    <div class="card-custom p-4">
+      <h5 class="fw-bold mb-3" style="color:#1a1a2e"><i class="bi bi-cup-hot" style="color:#f77f00"></i> Rest Break Timer</h5>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <label class="form-label small fw-bold">Focus Min</label>
+          <input id="focusMinutes" type="number" value="25" min="1" class="form-control">
+        </div>
+        <div class="col-6">
+          <label class="form-label small fw-bold">Break Min</label>
+          <input id="breakMinutes" type="number" value="5" min="1" class="form-control">
+        </div>
+      </div>
+      <div id="timerPanel" class="text-center py-3 mb-3" style="border-radius:16px;background:#f8faff;border:1px solid #e6eeff">
+        <div id="timerPhase" class="text-uppercase" style="font-size:.75rem;letter-spacing:.08em;color:#4361ee;font-weight:700">Focus session</div>
+        <div id="timerDisplay" style="font-size:2.25rem;font-weight:800;color:#1a1a2e;line-height:1.2">25:00</div>
+        <div class="text-muted small">Session khatam hote hi break alert aa jayega.</div>
+      </div>
+      <div class="d-flex gap-2 mb-2">
+        <button id="startTimerBtn" type="button" class="btn btn-primary-custom flex-fill"><i class="bi bi-play-fill"></i> Start</button>
+        <button id="pauseTimerBtn" type="button" class="btn flex-fill" style="background:#fff;color:#4361ee;border:1px solid #dbe4ff"><i class="bi bi-pause-fill"></i> Pause</button>
+        <button id="resetTimerBtn" type="button" class="btn flex-fill" style="background:#fff5f5;color:#d62828;border:1px solid #ffd6d6"><i class="bi bi-arrow-clockwise"></i> Reset</button>
+      </div>
+      <div class="small text-muted">Tip: timer complete hone ke baad session minutes ko save kar dena.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  const totalPages = {{ book.total_pages|default:0 }};
+  const pagesReadInput = document.getElementById('pagesReadInput');
+  const liveProgressText = document.getElementById('liveProgressText');
+  const liveProgressBar = document.getElementById('liveProgressBar');
+  const sessionMinutesInput = document.getElementById('sessionMinutesInput');
+
+  function updateLiveProgress() {
+    const pagesRead = parseInt(pagesReadInput.value || 0, 10);
+    const pct = totalPages > 0 ? Math.min(Math.round((pagesRead / totalPages) * 100), 100) : 0;
+    liveProgressText.textContent = `${pct}%`;
+    liveProgressBar.style.width = `${pct}%`;
+  }
+
+  pagesReadInput.addEventListener('input', updateLiveProgress);
+  pagesReadInput.addEventListener('change', updateLiveProgress);
+  pagesReadInput.addEventListener('keyup', updateLiveProgress);
+  updateLiveProgress();
+
+  const focusInput = document.getElementById('focusMinutes');
+  const breakInput = document.getElementById('breakMinutes');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const timerPhase = document.getElementById('timerPhase');
+  const timerPanel = document.getElementById('timerPanel');
+
+  let timerInterval = null;
+  let activeMode = 'focus';
+  let secondsLeft = (parseInt(focusInput.value || 25, 10) * 60);
+  let elapsedThisRun = 0;
+
+  function formatTime(totalSeconds) {
+    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  }
+
+  function syncDisplay() {
+    timerDisplay.textContent = formatTime(secondsLeft);
+    if (activeMode === 'focus') {
+      timerPhase.textContent = 'Focus session';
+      timerPanel.style.background = '#f8faff';
+      timerPanel.style.borderColor = '#e6eeff';
+    } else {
+      timerPhase.textContent = 'Rest break';
+      timerPanel.style.background = '#fff7ea';
+      timerPanel.style.borderColor = '#ffe2b2';
+    }
+  }
+
+  function addTrackedMinutes() {
+    const tracked = Math.floor(elapsedThisRun / 60);
+    if (tracked > 0) {
+      const current = parseInt(sessionMinutesInput.value || 0, 10);
+      sessionMinutesInput.value = current + tracked;
+      elapsedThisRun = 0;
+    }
+  }
+
+  function startTimer() {
+    if (timerInterval) return;
+    timerInterval = setInterval(() => {
+      if (secondsLeft > 0) {
+        secondsLeft -= 1;
+        if (activeMode === 'focus') elapsedThisRun += 1;
+        syncDisplay();
+        return;
+      }
+
+      clearInterval(timerInterval);
+      timerInterval = null;
+
+      if (activeMode === 'focus') {
+        addTrackedMinutes();
+        activeMode = 'break';
+        secondsLeft = (parseInt(breakInput.value || 5, 10) * 60);
+        syncDisplay();
+        alert('Rest break ka time ho gaya 😊');
+      } else {
+        activeMode = 'focus';
+        secondsLeft = (parseInt(focusInput.value || 25, 10) * 60);
+        syncDisplay();
+        alert('Break finish. Reading continue kar sakte ho.');
+      }
+    }, 1000);
+  }
+
+  function pauseTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    addTrackedMinutes();
+  }
+
+  function resetTimer() {
+    pauseTimer();
+    activeMode = 'focus';
+    secondsLeft = (parseInt(focusInput.value || 25, 10) * 60);
+    syncDisplay();
+  }
+
+  document.getElementById('startTimerBtn').addEventListener('click', startTimer);
+  document.getElementById('pauseTimerBtn').addEventListener('click', pauseTimer);
+  document.getElementById('resetTimerBtn').addEventListener('click', resetTimer);
+  focusInput.addEventListener('input', resetTimer);
+  breakInput.addEventListener('input', resetTimer);
+  syncDisplay();
+</script>
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const canvas = document.getElementById('pdfCanvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      const pageNumInput = document.getElementById('pageNum');
+      const pageCountSpan = document.getElementById('pageCount');
+      const zoomInput = document.getElementById('zoomLevel');
+      const zoomText = document.getElementById('zoomText');
+      const prevPage = document.getElementById('prevPage');
+      const nextPage = document.getElementById('nextPage');
+      const zoomOut = document.getElementById('zoomOut');
+      const zoomIn = document.getElementById('zoomIn');
+
+      let pdfDoc = null;
+      let pageNum = 1;
+      let pageRendering = false;
+      let pageNumPending = null;
+      let pdfZoom = 100;
+
+      const pdfUrl = '{{ book.pdf_file.url }}';
+      pdfjsLib.getDocument(pdfUrl).promise.then(pdf => {
+        pdfDoc = pdf;
+        pageCountSpan.textContent = `of ${pdf.numPages}`;
+        pageNumInput.max = pdf.numPages;
+        renderPage(pageNum);
+      }).catch(err => {
+        console.error('Error loading PDF:', err);
+        canvas.parentElement.innerHTML = '<p style="color:red;padding:20px">Unable to load PDF. Please check the file.</p>';
+      });
+
+      function renderPage(num) {
+        if (!pdfDoc) return;
+        if (pageRendering) {
+          pageNumPending = num;
+          return;
+        }
+        pageRendering = true;
+        pdfDoc.getPage(num).then(page => {
+          const scale = pdfZoom / 100;
+          const viewport = page.getViewport({ scale });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          const renderContext = {
+            canvasContext: ctx,
+            viewport: viewport,
+          };
+          page.render(renderContext).promise.then(() => {
+            pageRendering = false;
+            pageNumInput.value = num;
+            if (pageNumPending !== null) {
+              renderPage(pageNumPending);
+              pageNumPending = null;
+            }
+          });
+        });
+      }
+
+      prevPage.addEventListener('click', () => {
+        if (pageNum > 1) {
+          pageNum--;
+          renderPage(pageNum);
+        }
+      });
+
+      nextPage.addEventListener('click', () => {
+        if (pageNum < pdfDoc.numPages) {
+          pageNum++;
+          renderPage(pageNum);
+        }
+      });
+
+      pageNumInput.addEventListener('change', (e) => {
+        let num = parseInt(e.target.value, 10);
+        if (num < 1) num = 1;
+        if (num > pdfDoc.numPages) num = pdfDoc.numPages;
+        pageNum = num;
+        renderPage(pageNum);
+      });
+
+      zoomInput.addEventListener('input', (e) => {
+        pdfZoom = parseInt(e.target.value, 10);
+        zoomText.textContent = `${pdfZoom}%`;
+        renderPage(pageNum);
+      });
+
+      zoomOut.addEventListener('click', () => {
+        if (pdfZoom > 50) {
+          pdfZoom -= 10;
+          zoomInput.value = pdfZoom;
+          zoomText.textContent = `${pdfZoom}%`;
+          renderPage(pageNum);
+        }
+      });
+
+      zoomIn.addEventListener('click', () => {
+        if (pdfZoom < 200) {
+          pdfZoom += 10;
+          zoomInput.value = pdfZoom;
+          zoomText.textContent = `${pdfZoom}%`;
+          renderPage(pageNum);
+        }
+      });
+    }
+  } else {
+    console.warn('PDF.js library not loaded. PDF viewer will not initialize.');
+  }
+</script>
+{% endblock %}

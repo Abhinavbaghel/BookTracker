@@ -1,0 +1,409 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Dashboard — BookTracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h1 style="font-weight:700;font-size:1.8rem;color:#1a1a2e;margin-bottom:4px">
+      📚 My Reading Dashboard
+    </h1>
+    <p class="text-muted mb-0">Track PDFs, reading progress, and healthy study breaks in one place.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <form method="POST" action="{% url 'add_sample_books' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn" style="background:#fff;color:#4361ee;border:1px solid #dbe4ff;border-radius:10px;padding:10px 18px;font-weight:600">
+        <i class="bi bi-file-earmark-pdf"></i> Add {{ sample_book_count }} Sample PDF Books
+      </button>
+    </form>
+    <a href="{% url 'add_book' %}" class="btn btn-primary-custom">
+      <i class="bi bi-plus-lg"></i> Add New Book
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-gradient-blue">
+      <div class="stat-icon"><i class="bi bi-book"></i></div>
+      <div class="stat-number mt-2">{{ total_books }}</div>
+      <div class="stat-label">Total Books</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-gradient-green">
+      <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+      <div class="stat-number mt-2">{{ completed_count }}</div>
+      <div class="stat-label">Completed</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-gradient-orange">
+      <div class="stat-icon"><i class="bi bi-journal-text"></i></div>
+      <div class="stat-number mt-2">{{ reading_count }}</div>
+      <div class="stat-label">Reading Now</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-gradient-purple">
+      <div class="stat-icon"><i class="bi bi-file-earmark-pdf"></i></div>
+      <div class="stat-number mt-2">{{ pdf_books_count }}</div>
+      <div class="stat-label">PDF Books</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="goal-card mb-4">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div class="flex-grow-1">
+          <h5 class="mb-1 fw-bold"><i class="bi bi-trophy"></i> Reading Goal {{ reading_goal.year }}</h5>
+          <p class="mb-3" style="opacity:.85;font-size:.9rem">
+            You've completed <strong>{{ completed_count }}</strong> of <strong>{{ reading_goal.books_goal }}</strong> books — {{ goal_progress }}% done.
+          </p>
+          <div class="goal-progress-bar" style="width:100%;min-width:200px">
+            <div class="goal-progress-fill" style="width:{{ goal_progress }}%"></div>
+          </div>
+        </div>
+        <form method="POST" action="{% url 'dashboard' %}" class="d-flex align-items-center gap-2 mt-2">
+          {% csrf_token %}
+          <input type="hidden" name="update_goal" value="1">
+          <input type="number" name="books_goal" value="{{ reading_goal.books_goal }}"
+                 min="1" max="365"
+                 style="width:80px;border-radius:8px;border:2px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;padding:6px 10px;font-weight:600;text-align:center"
+                 class="form-control-sm">
+          <button type="submit"
+                  style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:6px 14px;font-size:.85rem;cursor:pointer;transition:background .2s"
+                  onmouseover="this.style.background='rgba(255,255,255,.3)'"
+                  onmouseout="this.style.background='rgba(255,255,255,.2)'">
+            Update
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card-custom p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div>
+          <h5 class="mb-1 fw-bold" style="color:#1a1a2e"><i class="bi bi-graph-up-arrow" style="color:#4361ee"></i> Overall Reading Progress</h5>
+          <p class="text-muted mb-0">Pages read across all books and PDFs</p>
+        </div>
+        <div style="font-weight:700;color:#4361ee;font-size:1.25rem">{{ overall_progress }}%</div>
+      </div>
+      <div class="progress-custom" style="height:12px">
+        <div class="progress-bar-custom" style="width:{{ overall_progress }}%"></div>
+      </div>
+      <div class="pages-info mt-2" style="font-size:.9rem">
+        <i class="bi bi-file-earmark-text"></i> {{ total_pages_read }} / {{ total_pages }} pages read
+        &nbsp; • &nbsp;
+        <i class="bi bi-clock"></i> {{ total_reading_hours }} hours logged
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <div class="section-title">
+        <i class="bi bi-journal-text"></i> Currently Reading
+        <span class="badge rounded-pill bg-primary ms-auto" style="font-size:.75rem">{{ reading_count }}</span>
+      </div>
+
+      {% if currently_reading %}
+      <div class="row g-3">
+        {% for book in currently_reading %}
+        <div class="col-sm-6">
+          <div class="book-card">
+            <div class="book-cover" style="background:{{ book.cover_color }}"></div>
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <span class="badge-custom badge-reading mb-2 d-inline-block">
+                  <i class="bi bi-journal-text"></i> Reading
+                </span>
+                {% if book.has_pdf %}
+                <span class="badge rounded-pill" style="background:#ffe9ef;color:#d63384;font-size:.72rem">
+                  PDF Ready
+                </span>
+                {% endif %}
+              </div>
+              <div class="book-title">{{ book.title }}</div>
+              <div class="book-author">by {{ book.author }}</div>
+
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <small class="text-muted" style="font-size:.78rem">Progress</small>
+                <span class="progress-pct">{{ book.progress_percentage }}%</span>
+              </div>
+              <div class="progress-custom">
+                <div class="progress-bar-custom" style="width:{{ book.progress_percentage }}%"></div>
+              </div>
+              <div class="pages-info">
+                <i class="bi bi-file-text"></i> {{ book.pages_read }} / {{ book.total_pages }} pages
+                &bull; {{ book.pages_remaining }} remaining
+              </div>
+              <div class="pages-info">
+                <i class="bi bi-stopwatch"></i> {{ book.reading_minutes }} min study time logged
+              </div>
+
+              <div class="d-flex gap-2 mt-3 flex-wrap">
+                {% if book.has_pdf %}
+                <a href="{% url 'read_book' book.id %}" class="btn btn-sm" style="background:#eaf4ff;color:#0d6efd;border:none;border-radius:8px;font-size:.78rem;flex:1">
+                  <i class="bi bi-eye"></i> Read PDF
+                </a>
+                {% endif %}
+                <button class="btn btn-sm"
+                        style="background:#f0f4ff;color:#4361ee;border:none;border-radius:8px;font-size:.78rem;flex:1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#progressModal{{ book.id }}">
+                  <i class="bi bi-pencil"></i> Update
+                </button>
+                <form method="POST" action="{% url 'delete_book' book.id %}" onsubmit="return confirm('Delete \"{{ book.title }}\"?')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger-sm">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal fade" id="progressModal{{ book.id }}" tabindex="-1">
+            <div class="modal-dialog modal-sm modal-dialog-centered">
+              <div class="modal-content" style="border-radius:16px;border:none">
+                <div class="modal-header border-0 pb-0">
+                  <h6 class="modal-title fw-bold">Update Progress</h6>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-2">
+                  <p class="text-muted small mb-3">{{ book.title }}</p>
+                  <form method="POST" action="{% url 'update_progress' book.id %}">
+                    {% csrf_token %}
+                    <label class="form-label small fw-bold">Pages Read <span class="text-muted">(max {{ book.total_pages }})</span></label>
+                    <input type="number" name="pages_read" value="{{ book.pages_read }}" min="0" max="{{ book.total_pages }}" class="form-control mb-3">
+                    <label class="form-label small fw-bold">Study Minutes</label>
+                    <input type="number" name="session_minutes" value="0" min="0" class="form-control mb-3" placeholder="Optional reading time">
+                    <button type="submit" class="btn btn-primary-custom w-100 btn-sm">Save Progress</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-custom">
+        <div class="empty-state">
+          <i class="bi bi-book"></i>
+          <p class="mb-0">No books in progress yet.</p>
+          <div class="d-flex gap-2 justify-content-center flex-wrap mt-3">
+            <a href="{% url 'add_book' %}" class="btn btn-primary-custom btn-sm">
+              <i class="bi bi-plus"></i> Add a Book
+            </a>
+            <form method="POST" action="{% url 'add_sample_books' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm" style="background:#fff;color:#4361ee;border:1px solid #dbe4ff;border-radius:10px;padding:10px 16px;font-weight:600">
+                <i class="bi bi-file-earmark-pdf"></i> Add Sample PDFs
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if completed_books %}
+    <div class="mb-4">
+      <div class="section-title">
+        <i class="bi bi-check-circle text-success"></i> Completed Books
+        <span class="badge rounded-pill bg-success ms-auto" style="font-size:.75rem">{{ completed_count }}</span>
+      </div>
+      <div class="row g-3">
+        {% for book in completed_books %}
+        <div class="col-sm-6">
+          <div class="book-card">
+            <div class="book-cover" style="background:{{ book.cover_color }}"></div>
+            <div class="card-body">
+              <span class="badge-custom badge-completed mb-2 d-inline-block">
+                <i class="bi bi-check-circle"></i> Completed
+              </span>
+              <div class="book-title">{{ book.title }}</div>
+              <div class="book-author">by {{ book.author }}</div>
+              <div class="progress-custom mt-3">
+                <div class="progress-bar-custom" style="width:100%;background:linear-gradient(90deg,#2ec4b6,#1a936f)"></div>
+              </div>
+              <div class="pages-info mt-1"><i class="bi bi-file-text"></i> {{ book.total_pages }} pages</div>
+              <div class="pages-info"><i class="bi bi-stopwatch"></i> {{ book.reading_minutes }} minutes logged</div>
+              <div class="d-flex gap-2 mt-3">
+                {% if book.has_pdf %}
+                <a href="{% url 'read_book' book.id %}" class="btn btn-sm" style="background:#eaf4ff;color:#0d6efd;border:none;border-radius:8px;font-size:.78rem;flex:1">
+                  <i class="bi bi-eye"></i> Open PDF
+                </a>
+                {% endif %}
+                <form method="POST" action="{% url 'delete_book' book.id %}" onsubmit="return confirm('Delete \"{{ book.title }}\"?')" class="w-100">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger-sm w-100">
+                    <i class="bi bi-trash"></i> Remove
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card-custom p-4 mb-4">
+      <div class="section-title mb-3">
+        <i class="bi bi-cup-hot"></i> Rest Break Timer
+      </div>
+      <p class="text-muted" style="font-size:.9rem">Study smart. Start a focus session and take an automatic rest break alert when time is up.</p>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <label class="form-label small fw-bold">Focus Min</label>
+          <input id="focusMinutes" type="number" value="25" min="1" class="form-control">
+        </div>
+        <div class="col-6">
+          <label class="form-label small fw-bold">Break Min</label>
+          <input id="breakMinutes" type="number" value="5" min="1" class="form-control">
+        </div>
+      </div>
+      <div class="text-center py-3 mb-3" id="timerPanel" style="border-radius:16px;background:#f8faff;border:1px solid #e6eeff">
+        <div id="timerPhase" class="text-uppercase" style="font-size:.75rem;letter-spacing:.08em;color:#4361ee;font-weight:700">Focus session</div>
+        <div id="timerDisplay" style="font-size:2.25rem;font-weight:800;color:#1a1a2e;line-height:1.2">25:00</div>
+        <div class="text-muted small">Stay focused until the timer completes.</div>
+      </div>
+      <div class="d-flex gap-2">
+        <button id="startTimerBtn" class="btn btn-primary-custom flex-fill"><i class="bi bi-play-fill"></i> Start</button>
+        <button id="pauseTimerBtn" class="btn flex-fill" style="background:#fff;color:#4361ee;border:1px solid #dbe4ff"><i class="bi bi-pause-fill"></i> Pause</button>
+        <button id="resetTimerBtn" class="btn flex-fill" style="background:#fff5f5;color:#d62828;border:1px solid #ffd6d6"><i class="bi bi-arrow-clockwise"></i> Reset</button>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <div class="section-title"><i class="bi bi-chat-quote"></i> Recent Reviews</div>
+      {% if recent_reviews %}
+        {% for review in recent_reviews %}
+        <div class="review-card">
+          <div class="review-book-title"><i class="bi bi-book"></i> {{ review.book.title }}</div>
+          <div class="stars mt-1">
+            {% for i in review.star_range %}<i class="bi bi-star-fill"></i>{% endfor %}
+            {% for i in review.empty_star_range %}<i class="bi bi-star" style="color:#dee2e6"></i>{% endfor %}
+          </div>
+          <p class="review-text">{{ review.text }}</p>
+          <div class="review-meta"><i class="bi bi-clock"></i> {{ review.created_at|date:"M d, Y" }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="card-custom">
+          <div class="empty-state">
+            <i class="bi bi-chat-square-text"></i>
+            <p class="mb-0 small">No reviews yet. Add a book with a review.</p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if wishlist_books %}
+    <div class="mb-4">
+      <div class="section-title">
+        <i class="bi bi-bookmark-star"></i> Wishlist
+        <span class="badge rounded-pill ms-auto" style="background:#fef3e2;color:#f77f00;font-size:.75rem">{{ wishlist_count }}</span>
+      </div>
+      {% for book in wishlist_books %}
+      <div class="d-flex align-items-center gap-3 mb-2 p-3" style="background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+        <div style="width:40px;height:40px;border-radius:10px;flex-shrink:0;background:{{ book.cover_color }}"></div>
+        <div class="flex-grow-1 overflow-hidden">
+          <div class="fw-bold text-truncate" style="font-size:.88rem">{{ book.title }}</div>
+          <div class="text-muted" style="font-size:.78rem">{{ book.author }}</div>
+        </div>
+        <form method="POST" action="{% url 'delete_book' book.id %}" onsubmit="return confirm('Remove from wishlist?')">
+          {% csrf_token %}
+          <button type="submit" class="btn-danger-sm btn"><i class="bi bi-x"></i></button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const focusInput = document.getElementById('focusMinutes');
+  const breakInput = document.getElementById('breakMinutes');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const timerPhase = document.getElementById('timerPhase');
+  const timerPanel = document.getElementById('timerPanel');
+
+  let timerInterval = null;
+  let activeMode = 'focus';
+  let secondsLeft = (parseInt(focusInput.value || 25, 10) * 60);
+
+  function formatTime(totalSeconds) {
+    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  }
+
+  function syncDisplay() {
+    timerDisplay.textContent = formatTime(secondsLeft);
+    if (activeMode === 'focus') {
+      timerPhase.textContent = 'Focus session';
+      timerPanel.style.background = '#f8faff';
+      timerPanel.style.borderColor = '#e6eeff';
+    } else {
+      timerPhase.textContent = 'Rest break';
+      timerPanel.style.background = '#fff7ea';
+      timerPanel.style.borderColor = '#ffe2b2';
+    }
+  }
+
+  function startTimer() {
+    if (timerInterval) return;
+    timerInterval = setInterval(() => {
+      if (secondsLeft > 0) {
+        secondsLeft -= 1;
+        syncDisplay();
+        return;
+      }
+
+      clearInterval(timerInterval);
+      timerInterval = null;
+
+      if (activeMode === 'focus') {
+        activeMode = 'break';
+        secondsLeft = (parseInt(breakInput.value || 5, 10) * 60);
+        syncDisplay();
+        alert('Time for a rest break. Thoda rest le lo 😊');
+      } else {
+        activeMode = 'focus';
+        secondsLeft = (parseInt(focusInput.value || 25, 10) * 60);
+        syncDisplay();
+        alert('Break finished. Ready for the next reading session!');
+      }
+    }, 1000);
+  }
+
+  function pauseTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  function resetTimer() {
+    pauseTimer();
+    activeMode = 'focus';
+    secondsLeft = (parseInt(focusInput.value || 25, 10) * 60);
+    syncDisplay();
+  }
+
+  document.getElementById('startTimerBtn').addEventListener('click', startTimer);
+  document.getElementById('pauseTimerBtn').addEventListener('click', pauseTimer);
+  document.getElementById('resetTimerBtn').addEventListener('click', resetTimer);
+  focusInput.addEventListener('input', resetTimer);
+  breakInput.addEventListener('input', resetTimer);
+  syncDisplay();
+</script>
+{% endblock %}
